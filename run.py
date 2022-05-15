@@ -153,7 +153,7 @@ def train(agent, env, eval_env, max_epochs, rank, PreTrain_STEPS, turn_beta,
                 if done:
                     # Episode done.
                     episodes += 1
-                    agent.save_episoed_result(episode_cumulate_reward, episode_length, info['is_success'], episodes)
+                    agent.save_episode_result(episode_cumulate_reward, episode_length, info['is_success'], episodes)
                     episode_cumulate_reward_history.append(episode_cumulate_reward)
                     episode_cumulate_reward = 0
                     episode_length = 0

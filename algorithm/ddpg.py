@@ -316,7 +316,7 @@ class DDPG(object):
         new_tb_log = self.num_timesteps == 0
         return new_tb_log
 
-    def save_episoed_result(self, epi_cumulate_reward, episoed_length, success_or_not, episodes):
+    def save_episode_result(self, epi_cumulate_reward, episoed_length, success_or_not, episodes):
         s = self.sess.run(self.episode_summary,
                           feed_dict={self.episode_cumulate_reward: epi_cumulate_reward,
                                      self.episoed_length: episoed_length,
@@ -324,7 +324,7 @@ class DDPG(object):
 
         self.writer.add_summary(s, global_step=int(episodes))
 
-    def save_eval_episoed_result(self, eval_epi_reward, eval_episoed_length, eval_success_or_not, eval_episodes):
+    def save_eval_episode_result(self, eval_epi_reward, eval_episoed_length, eval_success_or_not, eval_episodes):
         eval_s = self.sess.run(self.eval_episode_summary,
                           feed_dict={self.eval_episode_cumulate_reward: eval_epi_reward,
                                      self.eval_episoed_length: eval_episoed_length,
