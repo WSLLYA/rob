@@ -24,9 +24,9 @@ def mkdir( rank, experiment_name):
     if not folder:
         os.makedirs("model/" + experiment_name)
 
-def wreplay(memory):
+def wreplay(memory, file_path):
     path = os.getcwd()
-    path = os.path.join(path, 'outs/replay_memory.txt')
+    path = os.path.join(path, file_path)
     with open(path, "r+") as f:
         f.truncate()
         f.write('shape:\nobs:%s\nsta:%s\naction:%s\nreward:%s\nobs1:%s\nsta1:%s\nter:%s\n'%
@@ -40,7 +40,11 @@ def wreplay(memory):
         f.write('sta1: %s\n'%str(memory[5]))
         f.write('ter: %s\n'%str(memory[6]))
 
-    # np.savez(path, *memory)
+def w_rate(eval_epoch, rate):
+    path = os.getcwd()
+    path = os.path.join(path, 'outs/testing_result.txt')
+    with open(path, "r+") as f:
+        f.write('eval_epoch_%d : %d\n'%(eval_epoch, rate))
 
 # if __name__ == '__main__':
     # path = os.getcwd()

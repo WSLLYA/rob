@@ -311,9 +311,6 @@ class KukaDiverseObjectEnv(Kuka):
         self._env_step += 1
         state = p.getLinkState(self._kuka.kukaUid, self._kuka.kukaEndEffectorIndex)
         current_EndEffectorPos = state[0]
-        
-        #testing
-        print("ef_pos_before:", current_EndEffectorPos)
 
         # clip the end-effector with in a legal range.
         self._kuka.endEffectorPos[0] = np.clip(current_EndEffectorPos[0] + action[0], 0.45, 0.7)
@@ -335,9 +332,6 @@ class KukaDiverseObjectEnv(Kuka):
         state = p.getLinkState(self._kuka.kukaUid,
                                self._kuka.kukaEndEffectorIndex)
         end_effector_pos = state[0]
-
-        # testing
-        print("ef_pos_after:", end_effector_pos)
 
         if end_effector_pos[2] <= 0.1:
             finger_angle = 0.3
@@ -381,14 +375,13 @@ class KukaDiverseObjectEnv(Kuka):
         for uid in self._objectUids:
             pos, _ = p.getBasePositionAndOrientation(uid)
             pos_list.append(pos)
-        print("ob_pos:", pos_list)
+        return pos_list
     
     # testing
     def get_ef_pos(self):
         state = p.getLinkState(self._kuka.kukaUid,
                                self._kuka.kukaEndEffectorIndex)
-        end_effector_pos = state[0]
-        print("end_effector_pos:", end_effector_pos)
+        return state[0]
 
     def _reward(self):
         """
