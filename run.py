@@ -1,6 +1,7 @@
 from algorithm.ddpg import DDPG
 from env.KukaGymEnv import KukaDiverseObjectEnv
 import argparse
+import sys, os
 import pdb
 
 import tensorflow as tf
@@ -111,7 +112,9 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=5, inter_lear
 
                 # testing
                 trans = agent.get_memory()
-                wreplay(trans[0], 'outs/replay_memory.txt')
+                path = os.getcwd()
+                path = os.path.join(path, 'outs/replay_memory.txt')
+                wreplay(trans[0], path)
 
             # evaluate
             sucess_epochs = 0

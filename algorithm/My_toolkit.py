@@ -1,5 +1,6 @@
 # coding=utf-8
 import os
+import datetime
 import numpy as np
 
 def normalize(x, stats):
@@ -24,11 +25,12 @@ def mkdir( rank, experiment_name):
     if not folder:
         os.makedirs("model/" + experiment_name)
 
-def wreplay(memory, file_path):
-    path = os.getcwd()
-    path = os.path.join(path, file_path)
+def wreplay(memory, path):
+    # path = os.getcwd()
+    # path = os.path.join(path, file_path)
     with open(path, "r+") as f:
         f.truncate()
+        f.write('%s\n'%format(datetime.datetime.now()))
         f.write('shape:\nobs:%s\nsta:%s\naction:%s\nreward:%s\nobs1:%s\nsta1:%s\nter:%s\n'%
         (str(memory[0].shape), str(memory[1].shape), str(memory[2].shape), str(memory[3].shape),
         str(memory[4].shape), str(memory[5].shape), str(memory[6].shape)))

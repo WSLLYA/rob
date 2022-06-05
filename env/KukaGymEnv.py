@@ -333,6 +333,10 @@ class KukaDiverseObjectEnv(Kuka):
                                self._kuka.kukaEndEffectorIndex)
         end_effector_pos = state[0]
 
+        # testing
+        trialDuration = 30
+        p.addUserDebugLine(current_EndEffectorPos, end_effector_pos, [1, 0, 0], 3, trialDuration)
+
         if end_effector_pos[2] <= 0.1:
             finger_angle = 0.3
             for _ in range(500):
@@ -358,6 +362,42 @@ class KukaDiverseObjectEnv(Kuka):
                     finger_angle = 0
 
             self._attempted_grasp = True
+        if self.use_low_dim_obs:
+            obs = self._low_dim_full_state()
+        else:
+            obs = self._get_observation()
+        done = self._termination()
+        reward = self._reward()
+        debug = {
+            'is_success': self._graspSuccess
+        }
+        return obs, reward, done, debug
+
+    # testing
+    def step_expert(self, action):
+        state = p.getLinkState(self._kuka.kukaUid, self._kuka.kukaEndEffectorIndex)
+        current_EndEffectorPos = state[0]
+
+        self._kuka.endEffectorPos[0] = action[0]
+        self._kuka.endEffectorPos[1] = action[1]
+        self._kuka.endEffectorPos[2] = action[2]
+        self.current_a = action[3]
+        for _ in range(self._actionRepeat):
+            self._kuka.applyAction(self._kuka.endEffectorPos, self.current_a)
+            if self._renders:
+                # time.sleep(self._timeStep)
+                pass
+            p.stepSimulation()
+            if self._termination():
+                break
+
+        state = p.getLinkState(self._kuka.kukaUid,
+                               self._kuka.kukaEndEffectorIndex)
+        end_effector_pos = state[0]
+
+        trialDuration = 30
+        p.addUserDebugLine(current_EndEffectorPos, end_effector_pos, [1, 0, 0], 3, trialDuration)
+
         if self.use_low_dim_obs:
             obs = self._low_dim_full_state()
         else:
