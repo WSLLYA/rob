@@ -46,9 +46,8 @@ def set_process_seeds(myseed):
     np.random.seed(myseed)
     random.seed(myseed)
 
-# episode_cumulate_reward = 15
-# inter_learn_steps=10
-def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=5, inter_learn_steps=5, **kwargs):
+
+def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_learn_steps=5, **kwargs):
     assert np.all(np.abs(env.action_space.low) == env.action_space.high)
     print('Pross_%d start rollout!'%(rank))
     with agent.sess.as_default(), agent.graph.as_default():
@@ -68,9 +67,6 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=5, inter_lear
 
                 # predict next action
                 action = agent.pi(obs)
-                
-                # testing
-                # print(action)
 
                 assert action.shape == env.action_space.shape
 
@@ -108,7 +104,7 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=5, inter_lear
                 for t_train in range(inter_learn_steps):
                     agent.learn(train_step)
                     train_step += 1
-                # agent.Save()
+                agent.Save()
 
                 # testing
                 trans = agent.get_memory()
@@ -119,7 +115,6 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=5, inter_lear
             # evaluate
             sucess_epochs = 0
             sucess_rate = 0
-            pdb.set_trace()
             if eval_env is not None and epoch % 5 == 0:
                 print("\n---------开始测试：--------")
                 print('\neval_episodes:', eval_episodes)
@@ -137,13 +132,11 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=5, inter_lear
                         eval_obs, eval_reward, eval_done, eval_info = env.step(eval_action)
                         if eval_done:
                             break
-                    pdb.set_trace()
                     if eval_info['is_success']:
                         print('Success!!!')
                         sucess_epochs += 1
                     else:
                         print('Fail!!!')
-                pdb.set_trace()
                 sucess_rate = sucess_epochs / 50
                 w_rate(eval_episodes, sucess_rate)
                 eval_episodes += 1
@@ -189,6 +182,9 @@ def main(experiment_name, seed, max_epochs, evaluation, isrender, max_ep_steps, 
     agent = DDPG(rank, **kwargs, experiment_name = experiment_name)
 
     agent_trained = train(agent, env, eval_env, max_epochs, rank, **kwargs)
+
+    # if rank == 0:
+    #     agent_trained.Save()
 
 if __name__ == '__main__':
     args = comman_arg_parser()

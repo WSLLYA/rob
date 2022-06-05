@@ -2,6 +2,7 @@ from email import policy
 import sys, os
 sys.path.append("..")
 from env.KukaGymEnv import KukaDiverseObjectEnv
+from priority_memory import PrioritizedMemory
 from gym import spaces
 from My_toolkit import wreplay
 import random
@@ -32,7 +33,7 @@ class ContinuousDownwardBiasPolicy(object):
     return [dx, dy, dz, da]
 
 
-def collect(env, policy, epochs=1, steps=10):
+def collect(env, policy, memory, epochs=1, steps=10):
     trans = []
 
     for epoch in range(epochs):
@@ -51,6 +52,9 @@ def collect(env, policy, epochs=1, steps=10):
                     np.array(action), np.array(reward),
                     np.array(new_obs), np.array(new_full_state), np.array(done)]
             trans.append(item)
+
+            memory.append_demo( obs0=obs, f_s0=full_state, action=action, reward=reward,
+                                     obs1=new_obs, f_s1=new_full_state, terminal1=done)
 
             obs = new_obs
             full_state = new_full_state
@@ -71,8 +75,9 @@ def main():
                                numObjects=4,
                                dv=1.0)
     policy = ContinuousDownwardBiasPolicy()
-    pdb.set_trace()
-    collect(env, policy)
+    memory = PrioritizedMemory(capacity=1000, alpha=0.1)
+
+    collect(env, policy, memory)
 
 if __name__ == '__main__':
     main()

@@ -5,6 +5,7 @@ import tensorflow as tf
 from env.KukaGymEnv import KukaDiverseObjectEnv
 from algorithm.ddpg import DDPG
 import numpy as np
+import pdb
 
 
 def common_arg_parser():
@@ -49,7 +50,7 @@ def show_test(seed, experiment_name, max_ep_steps, use_segmentation_Mask, **kwar
                                removeHeightHack=True,
                                use_low_dim_obs=False,
                                use_segmentation_Mask=use_segmentation_Mask,
-                               numObjects=1,
+                               numObjects=4,
                                dv=1.0)
     kwargs['obs_space'] = env.observation_space
     kwargs['action_space'] = env.action_space
@@ -68,13 +69,10 @@ def show_test(seed, experiment_name, max_ep_steps, use_segmentation_Mask, **kwar
         success_num = 0
         obs, done = env.reset(), False
 
-        for _ in range(3000):
+        for _ in range(20):
             action = agent.pi(obs)
             print("\n")
             print("action:", action)
-
-            # testing
-            env.get_ob_pos()
 
             obs, reward, done, info = env.step(action)
             if done:
