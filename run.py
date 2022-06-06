@@ -25,7 +25,7 @@ def comman_arg_parser():
     parser.add_argument('--batch_size', type=int, default=64, help="batch_size.default=64")
     parser.add_argument('--max_epochs', type=int, default=int(1e+4), help="max epochs of whole training")
     parser.add_argument('--noise_target_action', help="noise target action", action="store_true")
-    parser.add_argument('--max_ep_steps', type=int, default=20, help="max steps of epoch")
+    parser.add_argument('--max_ep_steps', type=int, default=15, help="max steps of epoch")
 
     # priority
     parser.add_argument('--memory_size', type=int, default=1000, help="MEMORY_CAPACITY.default=1000")
@@ -47,7 +47,7 @@ def set_process_seeds(myseed):
     random.seed(myseed)
 
 
-def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_learn_steps=5, **kwargs):
+def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_learn_steps=50, **kwargs):
     assert np.all(np.abs(env.action_space.low) == env.action_space.high)
     print('Pross_%d start rollout!'%(rank))
     with agent.sess.as_default(), agent.graph.as_default():
@@ -99,12 +99,12 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_lea
                     break
             
             # train:replay learn
-            if agent.pointer >= 5 * 10:
-                print("\nReplay learning:", epoch)
+            if agent.pointer >= 5 * agent.batch_size:
+                # print("\nReplay learning:", epoch)
                 for t_train in range(inter_learn_steps):
                     agent.learn(train_step)
                     train_step += 1
-                agent.Save()
+                # agent.Save()
 
                 # testing
                 trans = agent.get_memory()
@@ -141,6 +141,9 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_lea
                 w_rate(eval_episodes, sucess_rate)
                 eval_episodes += 1
 
+            if (epoch + 1) % 100 == 0:
+                agent.Save(epoch)
+
         return agent
     
 def main(experiment_name, seed, max_epochs, evaluation, isrender, max_ep_steps, use_segmentation_Mask, **kwargs):
@@ -153,7 +156,7 @@ def main(experiment_name, seed, max_epochs, evaluation, isrender, max_ep_steps, 
     set_process_seeds(seed)
     print('\nrank {}: seed={}'.format(rank, seed))
 
-    env = KukaDiverseObjectEnv(renders=False,
+    env = KukaDiverseObjectEnv(renders=isrender,
                                isDiscrete=False,
                                maxSteps=max_ep_steps,
                                blockRandom=0.4,
