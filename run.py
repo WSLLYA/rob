@@ -142,7 +142,7 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_lea
                 eval_episodes += 1
 
             if (epoch + 1) % 100 == 0:
-                agent.Save(epoch)
+                agent.Save()
 
         return agent
     

@@ -38,12 +38,12 @@ def set_process_seeds(myseed):
     tf.set_random_seed(myseed)
     np.random.seed(myseed)
 
-def show_test(seed, experiment_name, max_ep_steps, use_segmentation_Mask, **kwargs):
+def show_test(seed, experiment_name, max_ep_steps, isrender, use_segmentation_Mask, **kwargs):
 
     rank = MPI.COMM_WORLD.Get_rank()
     seed = seed + 2019 * rank
     set_process_seeds(seed)
-    env = KukaDiverseObjectEnv(renders=True,
+    env = KukaDiverseObjectEnv(renders=isrender,
                                isDiscrete=False,
                                maxSteps=max_ep_steps,
                                blockRandom=0.4,
@@ -69,7 +69,7 @@ def show_test(seed, experiment_name, max_ep_steps, use_segmentation_Mask, **kwar
         success_num = 0
         obs, done = env.reset(), False
 
-        for _ in range(20):
+        for _ in range(3000):
             action = agent.pi(obs)
             print("\n")
             print("action:", action)
