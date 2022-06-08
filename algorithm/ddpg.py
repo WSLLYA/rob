@@ -487,3 +487,5 @@ class DDPG(object):
     def get_memory(self):
         trans = self.memory.get_replay()
         return trans
+
+    # testing:状态处理

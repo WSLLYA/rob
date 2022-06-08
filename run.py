@@ -1,3 +1,5 @@
+from email import policy
+import algorithm
 from algorithm.ddpg import DDPG
 from env.KukaGymEnv import KukaDiverseObjectEnv
 import argparse
@@ -9,6 +11,7 @@ import numpy as np
 
 import random
 from algorithm.My_toolkit import mkdir, wreplay, w_rate
+from demo_collect import collect, ContinuousDownwardBiasPolicy
 
 from mpi4py import MPI
 
@@ -16,25 +19,30 @@ def comman_arg_parser():
     parser = argparse.ArgumentParser()
 
     # common args
-    parser.add_argument('--experiment_name', type=str, default='experiment', help="exp_name")
-    parser.add_argument('--isrender', action="store_true",help="render GUI")
-    parser.add_argument('--use_segmentation_Mask', help="evaluate model", action="store_true")
-    parser.add_argument('--seed', type=int, default=0, help="random seed")
+    parser.add_argument('--experiment_name', type=str, default='experiment', help='exp_name')
+    parser.add_argument('--isrender', action='store_true',help='render GUI')
+    parser.add_argument('--use_segmentation_Mask', help='evaluate model', action='store_true')
+    parser.add_argument('--seed', type=int, default=0, help='random seed')
 
     # train
-    parser.add_argument('--batch_size', type=int, default=64, help="batch_size.default=64")
-    parser.add_argument('--max_epochs', type=int, default=int(1e+4), help="max epochs of whole training")
-    parser.add_argument('--noise_target_action', help="noise target action", action="store_true")
-    parser.add_argument('--max_ep_steps', type=int, default=15, help="max steps of epoch")
+    parser.add_argument('--batch_size', type=int, default=64, help='batch_size.default=64')
+    parser.add_argument('--max_epochs', type=int, default=int(1e+4), help='max epochs of whole training')
+    parser.add_argument('--noise_target_action', help='noise target action', action='store_true')
+    parser.add_argument('--max_ep_steps', type=int, default=15, help='max steps of epoch')
 
     # priority
-    parser.add_argument('--memory_size', type=int, default=1000, help="MEMORY_CAPACITY.default=1000")
-    parser.add_argument("-p", "--priority", action="store_true", help="priority memory replay")
-    parser.add_argument('--alpha', type=float, default=0.6, help="priority degree")
-    parser.add_argument("--turn_beta",  action="store_true", help="turn the beta from 0.6 to 1.0")
+    parser.add_argument('--memory_size', type=int, default=1000, help='MEMORY_CAPACITY.default=1000')
+    parser.add_argument('-p', '--priority', action='store_true', help='priority memory replay')
+    parser.add_argument('--alpha', type=float, default=0.6, help='priority degree')
+    parser.add_argument('--turn_beta',  action='store_true', help='turn the beta from 0.6 to 1.0')
+
+    # demonstration
+    parser.add_argument('--use_ddpgfd', action='store_true', help='demonstration')
+    parser.add_argument('--demo_capacity', type=int, default=2000, help='use demos to pretrain the agent')
+    parser.add_argument('--pre_train_steps', type=int, default=2000, help='the steps for pretrain')
 
     # evaluate
-    parser.add_argument('--evaluation', action="store_true", help="Evaluation model")
+    parser.add_argument('--evaluation', action='store_true', help='Evaluation model')
 
     args = parser.parse_args()
     dict_args = vars(args)
@@ -46,6 +54,35 @@ def set_process_seeds(myseed):
     np.random.seed(myseed)
     random.seed(myseed)
 
+def demo_collect(agent, demo_capacity, use_segmentation_Mask=False):
+    print("\n Demo Collecting...")
+    if use_segmentation_Mask:
+        demo_dir = 'demo_with_segm/'
+    else:
+        demo_dir = 'all_demo/'
+
+    with agent.sess.as_default(), agent.graph.as_default():
+        for i in range(demo_capacity):
+            demo_tran_file_path = demo_dir+'demo%d.npy' % (i)
+            transition = np.load(demo_tran_file_path, allow_pickle=True)
+            transition = transition.tolist()
+            agent.store_transition(full_state0=transition['f_s0'],
+                                   obs0=transition['obs0'],
+                                   action=transition['action'],
+                                   reward=transition['reward'],
+                                   full_state1=transition['f_s1'],
+                                   obs1=transition['obs1'],
+                                   terminal1=transition['terminal1'],
+                                   demo = True)
+    print(" Demo Collection completed.")
+
+def pre_train(agent, pre_train_steps):
+    print("\n PreTraining ...")
+    with agent.sess.as_default(), agent.graph.as_default():
+        for t_step in range(pre_train_steps):
+            agent.learn(t_step)
+
+    print(" PreTraining completed.")
 
 def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_learn_steps=50, **kwargs):
     assert np.all(np.abs(env.action_space.low) == env.action_space.high)
@@ -86,7 +123,7 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_lea
                 full_state = new_full_state
 
                 # testing
-                print("\nepoch_%d(%d): action:%s\nreward:%s"%(epoch,i,str(action),reward))
+                print('\nepoch_%d(%d): action:%s\nreward:%s'%(epoch,i,str(action),reward))
 
                 if done:
                     #episode done
@@ -100,7 +137,7 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_lea
             
             # train:replay learn
             if agent.pointer >= 5 * agent.batch_size:
-                # print("\nReplay learning:", epoch)
+                # print('\nReplay learning:', epoch)
                 for t_train in range(inter_learn_steps):
                     agent.learn(train_step)
                     train_step += 1
@@ -116,7 +153,7 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_lea
             sucess_epochs = 0
             sucess_rate = 0
             if eval_env is not None and epoch % 5 == 0:
-                print("\n---------开始测试：--------")
+                print('\n---------开始测试：--------')
                 print('\neval_episodes:', eval_episodes)
                 for eval_epoch in range(4):
                     
@@ -126,9 +163,9 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_lea
                         end_pos_before = env.get_ef_pos()
                         eval_action = agent.pi(eval_obs)
                         end_pos_after = env.get_ef_pos()
-                        print("end_pos_before:", end_pos_before)
-                        print("end_pos_after:", end_pos_after)
-                        print("eval_action:", eval_action)
+                        print('end_pos_before:', end_pos_before)
+                        print('end_pos_after:', end_pos_after)
+                        print('eval_action:', eval_action)
                         eval_obs, eval_reward, eval_done, eval_info = env.step(eval_action)
                         if eval_done:
                             break
@@ -141,12 +178,15 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_lea
                 w_rate(eval_episodes, sucess_rate)
                 eval_episodes += 1
 
-            if (epoch + 1) % 100 == 0:
-                agent.Save()
+            # if (epoch + 1) % 100 == 0:
+            #     agent.Save()
 
         return agent
     
-def main(experiment_name, seed, max_epochs, evaluation, isrender, max_ep_steps, use_segmentation_Mask, **kwargs):
+def main(experiment_name, seed, isrender,
+         use_segmentation_Mask, max_epochs, max_ep_steps,
+         use_ddpgfd, pre_train_steps, demo_capacity,
+         evaluation, **kwargs):
     
     #生成实验文件夹
     rank = MPI.COMM_WORLD.Get_rank()
@@ -184,10 +224,25 @@ def main(experiment_name, seed, max_epochs, evaluation, isrender, max_ep_steps, 
 
     agent = DDPG(rank, **kwargs, experiment_name = experiment_name)
 
+    # collect demos && pretrain
+    if use_ddpgfd:
+        # policy = ContinuousDownwardBiasPolicy()
+        demo_collect(agent, demo_capacity, use_segmentation_Mask=use_segmentation_Mask)
+        pre_train(agent, pre_train_steps=pre_train_steps)
+
+
+    # testing
+    trans = agent.get_memory()
+    path = os.getcwd()
+    path = os.path.join(path, 'outs/replay_memory.txt')
+    wreplay(trans[0], path)
+
+    pdb.set_trace()
+
     agent_trained = train(agent, env, eval_env, max_epochs, rank, **kwargs)
 
-    # if rank == 0:
-    #     agent_trained.Save()
+    if rank == 0:
+        agent_trained.Save()
 
 if __name__ == '__main__':
     args = comman_arg_parser()
