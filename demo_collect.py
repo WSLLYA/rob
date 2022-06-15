@@ -99,7 +99,7 @@ def collect_worker(worker_index):
             obs0 = obs1
             f_s0 = f_s1
 
-            demo_tran_file_path = 'demo_with_segm/demo%d.npy'%(i)
+            demo_tran_file_path = 'demos/demo%d.npy'%(i)
             np.save(demo_tran_file_path, demo_transitions, allow_pickle=True)
 
             i = i + 1
@@ -109,15 +109,44 @@ def collect_worker(worker_index):
             if i >= (worker_index+1) * 300  :
                 return
 
-if __name__ == '__main__':
-    # # 开12个进程 一起收集demo
-    # pdb.set_trace()
-    # print('Parent process %s.' % os.getpid())
-    # p = Pool(12)
+def main():
+    # 开12个进程 一起收集demo
+    print('Parent process %s.' % os.getpid())
+    p = Pool(12)
 
-    # for k in range(12):
-    #     p.apply_async(collect_worker, args=(k,))
-    # p.close()
-    # p.join()
-    # print('All subprocesses done.')
-    collect_worker(1)
+    for k in range(12):
+        p.apply_async(collect_worker, args=(k,))
+    p.close()
+    p.join()
+    print('All subprocesses done.')
+    # collect_worker(1)
+
+if __name__ == '__main__':
+    main()
+
+    # env = KukaDiverseObjectEnv(renders=True,
+    #                            isDiscrete=False,
+    #                            maxSteps=1000,
+    #                            blockRandom=0.4,
+    #                            removeHeightHack=True,
+    #                            use_low_dim_obs=False,
+    #                            use_segmentation_Mask=False,
+    #                            numObjects=1,
+    #                            dv=1.0)
+
+    # for i in range (10000):
+    #     obs0, done = env.reset(), False
+    #     f_s0 = env._low_dim_full_state()
+    #     for j in range(100):
+    #         action = env.demo_policy()
+
+    #         obs1, reward, done, info = env.step(action)
+    #         if info['is_success']:
+    #             print('success in %d transition'%(i))
+    #         if done:
+    #             break
+    #         f_s1 = env._low_dim_full_state()
+    #         obs0 = obs1
+    #         f_s0 = f_s1
+    #     if not done:
+    #         print("grasp fail!!")

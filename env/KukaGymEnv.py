@@ -14,6 +14,8 @@ from pkg_resources import parse_version
 import gym
 from gym.utils import seeding
 
+import pdb
+
 
 class KukaDiverseObjectEnv(Kuka):
     """Class for Kuka environment with diverse objects.

@@ -295,9 +295,9 @@ class DDPG(object):
         obs = obs.astype(dtype=np.float32)
         return self.sess.run(self.action, {self.observe_Input: obs[np.newaxis, :]})[0]
 
-    def Save(self):
+    def Save(self, file_name):
         # 只存权重,不存计算图.
-        self.saver.save(self.sess, save_path="model/" + self.experiment_name + "/model.ckpt", write_meta_graph=False)
+        self.saver.save(self.sess, save_path="model/" + file_name + "/model.ckpt", write_meta_graph=False)
 
     def load(self):
         self.saver.restore(self.sess, save_path="model/" + self.experiment_name + "/model.ckpt")

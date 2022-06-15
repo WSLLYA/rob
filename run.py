@@ -11,7 +11,6 @@ import numpy as np
 
 import random
 from algorithm.My_toolkit import mkdir, wreplay, w_rate
-from demo_collect import collect, ContinuousDownwardBiasPolicy
 
 from mpi4py import MPI
 
@@ -26,7 +25,7 @@ def comman_arg_parser():
 
     # train
     parser.add_argument('--batch_size', type=int, default=64, help='batch_size.default=64')
-    parser.add_argument('--max_epochs', type=int, default=int(1e+4), help='max epochs of whole training')
+    parser.add_argument('--max_epochs', type=int, default=2000, help='max epochs of whole training')
     parser.add_argument('--noise_target_action', help='noise target action', action='store_true')
     parser.add_argument('--max_ep_steps', type=int, default=15, help='max steps of epoch')
 
@@ -57,9 +56,9 @@ def set_process_seeds(myseed):
 def demo_collect(agent, demo_capacity, use_segmentation_Mask=False):
     print("\n Demo Collecting...")
     if use_segmentation_Mask:
-        demo_dir = 'demo_with_segm/'
+        demo_dir = 'demos_with_segm/'
     else:
-        demo_dir = 'all_demo/'
+        demo_dir = 'demos/'
 
     with agent.sess.as_default(), agent.graph.as_default():
         for i in range(demo_capacity):
@@ -81,6 +80,7 @@ def pre_train(agent, pre_train_steps):
     with agent.sess.as_default(), agent.graph.as_default():
         for t_step in range(pre_train_steps):
             agent.learn(t_step)
+    agent.Save()
 
     print(" PreTraining completed.")
 
@@ -183,10 +183,10 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_lea
 
         return agent
     
-def main(experiment_name, seed, isrender,
-         use_segmentation_Mask, max_epochs, max_ep_steps,
+def main(experiment_name, seed, max_epochs,
          use_ddpgfd, pre_train_steps, demo_capacity,
-         evaluation, **kwargs):
+         evaluation, isrender,
+         max_ep_steps, use_segmentation_Mask, **kwargs):
     
     #生成实验文件夹
     rank = MPI.COMM_WORLD.Get_rank()
@@ -226,23 +226,20 @@ def main(experiment_name, seed, isrender,
 
     # collect demos && pretrain
     if use_ddpgfd:
-        # policy = ContinuousDownwardBiasPolicy()
         demo_collect(agent, demo_capacity, use_segmentation_Mask=use_segmentation_Mask)
         pre_train(agent, pre_train_steps=pre_train_steps)
+        agent.Save('expert6.15')
 
-
-    # testing
-    trans = agent.get_memory()
-    path = os.getcwd()
-    path = os.path.join(path, 'outs/replay_memory.txt')
-    wreplay(trans[0], path)
-
-    pdb.set_trace()
+    # # testing
+    # trans = agent.get_memory()
+    # path = os.getcwd()
+    # path = os.path.join(path, 'outs/replay_memory.txt')
+    # wreplay(trans[0], path)
 
     agent_trained = train(agent, env, eval_env, max_epochs, rank, **kwargs)
 
     if rank == 0:
-        agent_trained.Save()
+        agent_trained.Save(experiment_name)
 
 if __name__ == '__main__':
     args = comman_arg_parser()
