@@ -77,8 +77,9 @@ def collect_worker(worker_index):
                                blockRandom=0.4,
                                removeHeightHack=True,
                                use_low_dim_obs=False,
-                               use_segmentation_Mask=True,
-                               numObjects=1, dv=1.0)
+                               use_segmentation_Mask=False,
+                               numObjects=4,
+                               dv=1.0)
     while 1:
         obs0, done = env.reset(), False
         f_s0 = env._low_dim_full_state()

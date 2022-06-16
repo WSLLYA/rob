@@ -37,8 +37,8 @@ def comman_arg_parser():
 
     # demonstration
     parser.add_argument('--use_ddpgfd', action='store_true', help='demonstration')
-    parser.add_argument('--demo_capacity', type=int, default=2000, help='use demos to pretrain the agent')
-    parser.add_argument('--pre_train_steps', type=int, default=2000, help='the steps for pretrain')
+    parser.add_argument('--demo_capacity', type=int, default=1000, help='use demos to pretrain the agent')
+    parser.add_argument('--pre_train_steps', type=int, default=1000, help='the steps for pretrain')
 
     # evaluate
     parser.add_argument('--evaluation', action='store_true', help='Evaluation model')
@@ -80,7 +80,6 @@ def pre_train(agent, pre_train_steps):
     with agent.sess.as_default(), agent.graph.as_default():
         for t_step in range(pre_train_steps):
             agent.learn(t_step)
-    agent.Save()
 
     print(" PreTraining completed.")
 
@@ -143,11 +142,11 @@ def train(agent, env, eval_env, max_epochs, rank, nb_rollout_steps=15, inter_lea
                     train_step += 1
                 # agent.Save()
 
-                # testing
-                trans = agent.get_memory()
-                path = os.getcwd()
-                path = os.path.join(path, 'outs/replay_memory.txt')
-                wreplay(trans[0], path)
+                # # testing
+                # trans = agent.get_memory()
+                # path = os.getcwd()
+                # path = os.path.join(path, 'outs/replay_memory.txt')
+                # wreplay(trans[0], path)
 
             # evaluate
             sucess_epochs = 0
@@ -208,7 +207,6 @@ def main(experiment_name, seed, max_epochs,
     kwargs['obs_space'] = env.observation_space
     kwargs['action_space'] = env.action_space
     kwargs['full_state_space'] = env.full_state_space
-
     if evaluation and rank == 0:
         eval_env = KukaDiverseObjectEnv(renders=False,
                                         isDiscrete=False,
@@ -228,7 +226,7 @@ def main(experiment_name, seed, max_epochs,
     if use_ddpgfd:
         demo_collect(agent, demo_capacity, use_segmentation_Mask=use_segmentation_Mask)
         pre_train(agent, pre_train_steps=pre_train_steps)
-        agent.Save('expert6.15')
+        agent.Save('expert6.16')
 
     # # testing
     # trans = agent.get_memory()
@@ -237,6 +235,7 @@ def main(experiment_name, seed, max_epochs,
     # wreplay(trans[0], path)
 
     agent_trained = train(agent, env, eval_env, max_epochs, rank, **kwargs)
+    print("\nTraining Completed!")
 
     if rank == 0:
         agent_trained.Save(experiment_name)

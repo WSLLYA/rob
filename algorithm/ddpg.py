@@ -447,7 +447,7 @@ class DDPG(object):
 
     def build_actor(self, observe_input, scope, trainable, full_state_dim):
         fc_a = partial(tf.layers.dense, activation=None, trainable=trainable)
-        conv2_a = partial( conv2_, trainable=trainable)
+        conv2_a = partial(conv2_, trainable=trainable)
         relu = partial(tf.nn.relu)
         with tf.variable_scope(scope):
             # conv -> relu

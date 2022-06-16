@@ -82,7 +82,7 @@ class Memory(object):
             storable_element: [] for storable_element in self.storable_elements
         }
         for i in idxes:
-            entry = self.storage[i]
+            entry = self.storage[int(i)]
             assert len(entry) == len(self.storable_elements)
             for j, elem_name in enumerate(entry):
                 batches[elem_name].append(entry[elem_name])
